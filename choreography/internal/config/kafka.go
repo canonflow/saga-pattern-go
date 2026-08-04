@@ -3,6 +3,7 @@ package config
 import (
 	"fmt"
 	"os"
+	"strconv"
 	"strings"
 	"sync"
 
@@ -26,7 +27,12 @@ func newKafkaConfig() *sarama.Config {
 	config.Consumer.Return.Errors = true
 	config.Producer.Return.Successes = true
 	config.Producer.RequiredAcks = sarama.WaitForAll
-	config.Producer.Retry.Max = 3
+
+	retryMax, err := strconv.Atoi(os.Getenv("KAFKA_RETRY"))
+	if err != nil {
+		retryMax = 3
+	}
+	config.Producer.Retry.Max = retryMax
 
 	offsetReset := os.Getenv("KAFKA_OFFSET_RESET")
 	if offsetReset == "earliest" {
