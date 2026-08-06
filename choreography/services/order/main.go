@@ -13,9 +13,15 @@ import (
 
 	"github.com/IBM/sarama"
 	"github.com/google/uuid"
+	"github.com/joho/godotenv"
 )
 
 func main() {
+	err := godotenv.Load()
+	if err != nil {
+		panic(err)
+	}
+	
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 

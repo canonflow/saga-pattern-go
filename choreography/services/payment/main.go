@@ -14,6 +14,7 @@ import (
 	"choreography/internal/shared"
 
 	"github.com/IBM/sarama"
+	"github.com/joho/godotenv"
 )
 
 type PaymentHandler struct {
@@ -37,6 +38,11 @@ func (h *PaymentHandler) Consume(message *sarama.ConsumerMessage) error {
 }
 
 func main() {
+	err := godotenv.Load()
+	if err != nil {
+		panic(err)
+	}
+
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
