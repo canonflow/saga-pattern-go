@@ -43,7 +43,7 @@ func main() {
 	// Listen Compensation From Shipping
 	paymentProducer, err := config.GetKafkaProducer("payment_producer")
 	if err != nil {
-		log.Fatalf("[Order Service] Error init consume group: %s\n", err)
+		log.Fatalf("[Payment Service] Error init consume group: %s\n", err)
 	}
 
 	paymentHandler := &PaymentHandler{
@@ -51,7 +51,7 @@ func main() {
 	}
 	consumerGroup, err := config.GetKafkaConsumer("payment_consumer")
 	if err != nil {
-		log.Fatalf("[Order Service] Error init consume group: %s\n", err)
+		log.Fatalf("[Payment Service] Error init consume group: %s\n", err)
 	}
 
 	go shared.ConsumeTopic(
@@ -65,6 +65,8 @@ func main() {
 	sig := make(chan os.Signal, 1)
 	signal.Notify(sig, syscall.SIGINT, syscall.SIGTERM)
 	<-sig
+	paymentProducer.Close()
+	consumerGroup.Close()
 	fmt.Println("\n[Payment Service] shutting down")
 }
 
@@ -84,7 +86,7 @@ func processPayment(event *shared.Event, producer sarama.SyncProducer) {
 		log.Printf("[Payment Service] payment successful for order %s\n", event.OrderID)
 	} else {
 		eventType = shared.PaymentFailed
-		log.Printf("[Payment Service] payment FAILED for order %s", event.OrderID)
+		log.Printf("[Payment Service] payment FAILED for order %s\n", event.OrderID)
 	}
 
 	// publish event
@@ -94,7 +96,7 @@ func processPayment(event *shared.Event, producer sarama.SyncProducer) {
 		order,
 	)
 	if err != nil {
-		log.Fatalf("[Payment Service] Failed to create event: %v", err)
+		log.Fatalf("[Payment Service] Failed to create event: %v\n", err)
 	}
 
 	message := &sarama.ProducerMessage{
@@ -105,7 +107,7 @@ func processPayment(event *shared.Event, producer sarama.SyncProducer) {
 
 	partition, offset, err := producer.SendMessage(message)
 	if err != nil {
-		log.Fatalf("[Payment Service] Failed to publish a message", err)
+		log.Fatalf("[Payment Service] Failed to publish a message\n", err)
 	}
 
 	log.Println("[Payment Service] Message Send to topic %s, partition %d, offset %d", shared.TopicPayments, partition, offset)

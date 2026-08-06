@@ -40,6 +40,8 @@ func main() {
 	sig := make(chan os.Signal, 1)
 	signal.Notify(sig, syscall.SIGINT, syscall.SIGTERM)
 	<-sig
+
+	consumerGroup.Close()
 	fmt.Println("\n[Order Service] shutting down")
 }
 
