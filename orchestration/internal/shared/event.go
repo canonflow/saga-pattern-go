@@ -9,29 +9,39 @@ import (
 	"github.com/IBM/sarama"
 )
 
-type EventType string
-
-const (
-	// Happy Path
-	OrderCreated     EventType = "order.created"
-	PaymentSucceeded EventType = "payment.succeeded"
-	ShippingArranged EventType = "shipping.arranged"
-
-	// Compensation
-	PaymentFailed   EventType = "payment.failed"
-	PaymentRefunded EventType = "payment.refunded"
-	ShippingFailed  EventType = "shipping.failed"
+type (
+	EventType   string
+	CommandType string
+	ReplyType   string
 )
 
+// Commands — sent by the orchestrator TO services
 const (
-	TopicOrders   = "orders"
-	TopicPayments = "payments"
-	TopicShipping = "shippings"
+	CmdProcessPayment  CommandType = "cmd.process_payment"
+	CmdRefundPayment   CommandType = "cmd.refund_payment"
+	CmdArrangeShipping CommandType = "cmd.reserve_inventory"
 )
 
-type Event struct {
+// Replies — sent by services back TO the orchestrator
+const (
+	ReplyPaymentSuccess   ReplyType = "reply.payment.success"
+	ReplyPaymentFailed    ReplyType = "reply.payment.failed"
+	ReplyRefundSuccess    ReplyType = "reply.refund.success"
+	ReplyShippingArranged ReplyType = "reply.inventory.arranged"
+	ReplyShippingFailed   ReplyType = "reply.inventory.failed"
+)
+
+// Kafka topics
+const (
+	TopicPaymentCmd    = "payment.commands"
+	TopicPaymentReply  = "payment.replies"
+	TopicShippingCmd   = "shipping.commands"
+	TopicShippingReply = "shipping.replies"
+)
+
+type Message struct {
 	ID        string          `json:"id"`
-	Type      EventType       `json:"event"`
+	Type      string          `json:"event"`
 	OrderID   string          `json:"order_id"`
 	Timestamp time.Time       `json:"timestamp"`
 	Data      json.RawMessage `json:"data"`
@@ -112,33 +122,4 @@ func ConsumeTopic(ctx context.Context, consumerGroup sarama.ConsumerGroup, topic
 			log.Printf("[Event - Consume Topic] Error closing consume group: %s\n", err)
 		}
 	}()
-}
-
-func NewEvent(eventType EventType, orderID string, data interface{}) ([]byte, error) {
-	var rawData json.RawMessage
-	if data != nil {
-		d, err := json.Marshal(data)
-		if err != nil {
-			return nil, err
-		}
-
-		rawData = d
-	}
-
-	event := Event{
-		ID:        orderID + "-" + string(eventType),
-		Type:      eventType,
-		OrderID:   orderID,
-		Timestamp: time.Now(),
-		Data:      rawData,
-	}
-
-	return json.Marshal(event)
-}
-
-func ParseEvent(data []byte) (*Event, error) {
-	var event Event
-	err := json.Unmarshal(data, &event)
-
-	return &event, err
 }
