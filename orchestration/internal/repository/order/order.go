@@ -6,7 +6,8 @@ import (
 )
 
 type IOrderRepository interface {
-	GetOrderByCustomerID(customerId string) []model.Order
-	GetOrderByID(orderId int64) model.Order
-	Create(payload dto.CreateOrder) model.Order
+	GetOrderByCustomerID(customerId string) ([]model.Order, error)
+	GetOrderByID(orderId int64) (model.Order, error)
+	Create(payload dto.CreateOrder) (model.Order, error)
+	Update(orderId int64, payload dto.UpdateOrder) (model.Order, error)
 }

@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/IBM/sarama"
+	"github.com/hashicorp/go-uuid"
 )
 
 type (
@@ -47,11 +48,40 @@ type Message struct {
 	Data      json.RawMessage `json:"data"`
 }
 
+// NewMessage builds a Message with a generated ID and current timestamp.
+func NewMessage(msgType, orderID string, data json.RawMessage) Message {
+	id, _ := uuid.GenerateUUID()
+	return Message{
+		ID:        id,
+		Type:      msgType,
+		OrderID:   orderID,
+		Timestamp: time.Now(),
+		Data:      data,
+	}
+}
+
+// Publish marshals and sends a Message to the given topic.
+// The message is keyed by OrderID so all events for one order land on the
+// same partition, preserving per-order ordering.
+func Publish(producer sarama.SyncProducer, topic string, msg Message) error {
+	payload, err := json.Marshal(msg)
+	if err != nil {
+		return err
+	}
+
+	_, _, err = producer.SendMessage(&sarama.ProducerMessage{
+		Topic: topic,
+		Key:   sarama.StringEncoder(msg.OrderID),
+		Value: sarama.ByteEncoder(payload),
+	})
+	return err
+}
+
 type OrderData struct {
 	CustomerID string  `json:"customer_id"`
 	Item       string  `json:"item"`
 	Quantity   int     `json:"quantity"`
-	Amount     float64 `json:"float"`
+	Amount     float64 `json:"amount"`
 }
 
 type ConsumerGroupHandler struct {
@@ -117,9 +147,7 @@ func ConsumeTopic(ctx context.Context, consumerGroup sarama.ConsumerGroup, topic
 	<-ctx.Done()
 
 	log.Printf("Closing consumer group for topic\n")
-	go func() {
-		for err := range consumerGroup.Close().Error() {
-			log.Printf("[Event - Consume Topic] Error closing consume group: %s\n", err)
-		}
-	}()
+	if err := consumerGroup.Close(); err != nil {
+		log.Printf("[Event - Consume Topic] Error closing consume group: %s\n", err)
+	}
 }

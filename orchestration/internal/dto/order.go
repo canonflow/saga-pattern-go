@@ -1,7 +1,12 @@
 package dto
 
 type CreateOrder struct {
-	Item     string  `json:"item"`
-	Amount   int     `json:"amount"`
-	Quantity float32 `json:"quantity"`
+	CustomerID string  `json:"customer_id"`
+	Item       string  `json:"item"`
+	Quantity   int     `json:"quantity"`
+	Amount     float32 `json:"amount"`
+}
+
+type UpdateOrder struct {
+	Status string `json:"status"`
 }
